@@ -1,0 +1,95 @@
+# kube-fit 🚀 - Kubernetes Pod Right-Sizing Analyzer
+
+**kube-fit** is a lightweight, CLI tool written in Rust. It connects to your Prometheus server, fetches historical usage data, and compares it against your Kubernetes resource requests to identify over-provisioned (wasted money) or under-provisioned (risk of OOM) pods. based on my personal experience operating Kubernetes workloads to help on right-size your pods by comparing resource requests vs. actual usage
+
+## ✨ Features
+> [!WARNING]
+> **Performance Note**: This tool has not yet been benchmarked against clusters with a high volume of pods. Use with caution in production environments with thousands of active pods.
+
+- **⚡ Fast & Async**: Built with Rust, Tokio, and Clap.
+- **📊 Range Analysis**: Analyzes data over a specific time window (e.g., 7 days) rather than just "now".
+- **🔍 Smart Categorization**: Automatically flags pods as `CRITICAL` (High Usage), `IDLE` (Low Usage), or `Normal`.
+- **📈 Backends**: Works with standard Prometheus (At this moment)
+- **📋 Data**: Only memory (At this moment)
+
+
+## 🛠 Installation
+
+### Prerequisites
+- [Rust & Cargo](https://www.rust-lang.org/tools/install) installed (1.92.0).
+
+### Build from Source
+```bash
+# Clone the repository
+git clone https://github.com/codebymaulana/kube-fit.git
+cd kube-fit
+
+# Build release binary
+cargo build --release
+
+# Run
+./target/release/kube-fit --help
+```
+
+### 🚀 Usage
+Ensure you have a Prometheus instance accessible (use kubectl port-forward if needed).
+```
+$ kube-fit --metric-server=http://prometheus.fajar 
+```
+
+### Arguments
+Argument | Description | Default | Example | Required 
+--- | --- | --- | --- |---
+--metric-server | URL of your Prometheus server | Null | http://localhost:9090 | True
+--interval | Internal time for analysis in format m,h,d | Null | 15m | True
+
+
+
+### 📊 How It Works
+The tool executes specific PromQL queries to fetch Requests (what you asked K8s for) and Usage (what the app actually used).
+
+Logic Steps
+1. Fetch Data: Queries Prometheus for resource requests and usage over the specified --interval.
+2. Align Time Series: Matches timestamped usage data with the corresponding request configuration.
+3. Compare: Calculates the percentage of requested resources actually being utilized.
+4. Categorize:
+CRITICAL (>90%): Pod is struggling; requests might be too low.
+IDLE (<10%): Pod is over-provisioned; you are wasting resources.
+NORMAL: Healthy utilization.
+
+### PromQL Queries Used
+Memory Request
+```
+max(kube_pod_container_resource_requests{resource="memory"}) by (pod)
+```
+
+Memory Used
+```
+max(container_memory_working_set_bytes{name!=""}) by (pod)
+```
+
+### 📝 Example Output
+```
+####################################################################################################
+#########                               Pod Usage Analyzer                                 #########
+####################################################################################################
+| Pod Name                                           | Status                    | Avg Usage (%) |
+|----------------------------------------------------|---------------------------|---------------|
+| app-with-limits-b568c767d-sxjcz                    | IDLE (Low)                |         2.16% |
+| coredns-66bc5c9577-j77th                           | Normal                    |        40.69% |
+| coredns-66bc5c9577-stgbt                           | Normal                    |        89.91% |
+| etcd-master                                        | CRITICAL (High)           |       104.21% |
+| metrics-server-7d694f9fb5-l9ncl                    | IDLE (Low)                |         8.33% |
+|----------------------------------------------------|---------------------------|---------------|
+```
+
+
+🤝 Contributing
+Contributions are welcome!
+
+👤 Author
+
+This project is primarily designed and implemented by the author.
+AI tools were used occasionally for code suggestions and refactoring, similar to using documentation or IDE assistance.
+
+GitHub: @codebymaulana
