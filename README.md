@@ -11,6 +11,7 @@
 - **🔍 Smart Categorization**: Automatically flags pods as `CRITICAL` (High Usage), `IDLE` (Low Usage), or `Normal`.
 - **📈 Backends**: Works with standard Prometheus (At this moment)
 - **📋 Data**: Only memory (At this moment)
+- **🔨 Mode**: It has TUI and CLI Mode.
 
 
 ## 🛠 Installation
@@ -47,6 +48,7 @@ Argument | Description | Default | Example | Required
 --interval | Internal time for analysis in format m,h,d | Null | 15m | True
 --filter | Filter data based on the status | Null | "Normal", "Underutilized", "Overutilized" | false
 --namespace | Filter data by kubernetes namespace | Null | kube-system | false
+--tui | Enter tui mode | false | --tui | false
 
 
 
