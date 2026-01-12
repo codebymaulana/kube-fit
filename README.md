@@ -31,10 +31,13 @@ cargo build --release
 ./target/release/kube-fit --help
 ```
 
+### Download the binary
+You can use the binary in bin folder. 
+
 ### 🚀 Usage
 Ensure you have a Prometheus instance accessible (use kubectl port-forward if needed).
 ```
-$ kube-fit --metric-server=http://prometheus.fajar 
+$ kube-fit --metric-server=http://prometheus.fajar --interval=15m
 ```
 
 ### Arguments
@@ -42,6 +45,8 @@ Argument | Description | Default | Example | Required
 --- | --- | --- | --- |---
 --metric-server | URL of your Prometheus server | Null | http://localhost:9090 | True
 --interval | Internal time for analysis in format m,h,d | Null | 15m | True
+--filter | Filter data based on the status | Null | "Normal", "Underutilized", "Overutilized" | false
+--namespace | Filter data by kubernetes namespace | Null | kube-system | false
 
 
 
@@ -53,9 +58,9 @@ Logic Steps
 2. Align Time Series: Matches timestamped usage data with the corresponding request configuration.
 3. Compare: Calculates the percentage of requested resources actually being utilized.
 4. Categorize:
-CRITICAL (>90%): Pod is struggling; requests might be too low.
-IDLE (<10%): Pod is over-provisioned; you are wasting resources.
-NORMAL: Healthy utilization.
+Overutilized (>90%): Pod is struggling; requests might be too low.
+Underutilized (<10%): Pod is over-provisioned; you are wasting resources.
+Normal: Healthy utilization.
 
 ### PromQL Queries Used
 Memory Request
@@ -70,19 +75,14 @@ max(container_memory_working_set_bytes{name!=""}) by (pod)
 
 ### 📝 Example Output
 ```
-####################################################################################################
-#########                               Pod Usage Analyzer                                 #########
-####################################################################################################
-| Pod Name                                           | Status                    | Avg Usage (%) |
-|----------------------------------------------------|---------------------------|---------------|
-| app-with-limits-b568c767d-sxjcz                    | IDLE (Low)                |         2.16% |
-| coredns-66bc5c9577-j77th                           | Normal                    |        40.69% |
-| coredns-66bc5c9577-stgbt                           | Normal                    |        89.91% |
-| etcd-master                                        | CRITICAL (High)           |       104.21% |
-| metrics-server-7d694f9fb5-l9ncl                    | IDLE (Low)                |         8.33% |
-|----------------------------------------------------|---------------------------|---------------|
+-------------------------------------Pod Usage Analyzer(all)[5]-------------------------------------
+POD NAME                                                STATUS                     AVG USAGE
+app-with-limits-b568c767d-sxjcz                         Underutilized                  2.00%
+coredns-66bc5c9577-j77th                                Normal                        62.64%
+coredns-66bc5c9577-stgbt                                Normal                        68.43%
+etcd-master                                             Overutilized                 102.08%
+metrics-server-7d694f9fb5-l9ncl                         Normal                        34.75%
 ```
-
 
 🤝 Contributing
 Contributions are welcome!
