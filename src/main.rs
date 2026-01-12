@@ -11,7 +11,11 @@ struct Cli {
     #[arg(long)]
     metric_server: String,
     #[arg(long)]
-    interval: String
+    interval: String,
+    #[arg(long)]
+    filter: Option<String>,
+    #[arg(long)]
+    namespace: Option<String>        
 
 }
 
@@ -19,15 +23,27 @@ struct Cli {
 async fn main() {
     let args = Cli::parse();
     
-    let query_request = r#"max(kube_pod_container_resource_requests{resource="memory"}) by (pod)"#;
-    let query_usage = r#"max(container_memory_working_set_bytes{name!=""}) by (pod)"#;
+    let ns_filter_request = if args.namespace.is_none() {
+        r#"resource="memory""#.to_string()
+    } else {
+        format!(r#"resource="memory", namespace="{}""#, args.namespace.as_ref().unwrap())
+    };
+
+    let ns_filter_usage = if args.namespace.is_none() {
+        r#"name!="""#.to_string()
+    } else {
+        format!(r#"name!="", namespace="{}""#, args.namespace.as_ref().unwrap())
+    };
+
+    let query_request = format!(r#"max(kube_pod_container_resource_requests{{{}}}) by (pod)"#, ns_filter_request);
+    let query_usage = format!(r#"max(container_memory_working_set_bytes{{{}}}) by (pod)"#, ns_filter_usage);
 
     let mut request_data_vec: Vec<MemoryRequest> = Vec::new();
     let mut usage_data_vec: Vec<MemoryUsage> = Vec::new();
 
     // ----------------- Get Memory Request Data -----------------
     println!("Fetching Memory Requests...");
-    match promql_client::get_metric_range_data(&args.metric_server, &args.interval, query_request).await {
+    match promql_client::get_metric_range_data(&args.metric_server, &args.interval, &query_request).await {
         Ok(Some(matrix)) => {
             for series in matrix {
                 let pod_name = series.metric().get("pod").map(|s| s.as_str().to_string()).unwrap_or_default();
@@ -41,7 +57,7 @@ async fn main() {
 
     // ----------------- Get Memory Usage Data -----------------
     println!("Fetching Memory Usage...");
-    match promql_client::get_metric_range_data(&args.metric_server, &args.interval, query_usage).await {
+    match promql_client::get_metric_range_data(&args.metric_server, &args.interval, &query_usage).await {
         Ok(Some(matrix)) => {
             for series in matrix {
                 let pod_name = series.metric().get("pod").map(|s| s.as_str().to_string()).unwrap_or_default();
@@ -55,7 +71,7 @@ async fn main() {
 
     // ----------------- Process & Compare -----------------
     if !request_data_vec.is_empty() && !usage_data_vec.is_empty() {
-        process_data::compare_data(request_data_vec, usage_data_vec);
+        process_data::compare_data(request_data_vec, usage_data_vec, args.filter.as_deref());
     } else {
         println!("Insufficient data to compare.");
     }
