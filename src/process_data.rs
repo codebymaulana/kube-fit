@@ -1,56 +1,91 @@
 use std::collections::HashMap;
 use crate::models::{MemoryRequest, MemoryUsage};
+use colored::Colorize;
 
-pub fn compare_data(requests: Vec<MemoryRequest>, usages: Vec<MemoryUsage>) {
-    println!("\n####################################################################################################");
-    println!("#########                               Pod Usage Analyzer                                 #########");
-    println!("####################################################################################################");
-    
-    // Table Header
-    println!("| {:<50} | {:<25} | {:>13} |", "Pod Name", "Status", "Avg Usage (%)");
-    println!("|{:-<52}|{:-<27}|{:-<15}|", "", "", "");
+pub fn compare_data(requests: Vec<MemoryRequest>, usages: Vec<MemoryUsage>, filter: Option<&str>) {
+    // 1. Define Column Widths
+    const COL_POD: usize = 55;
+    const COL_STATUS: usize = 20;
+    const COL_USAGE: usize = 15;
 
+    // 2. Prepare Data
+    let mut rows_to_print = Vec::new();
     let mut request_map: HashMap<String, Vec<crate::models::MetricPoint>> = HashMap::new();
+    
     for req in requests {
         request_map.insert(req.pod_name, req.metrics);
     }
 
-    // Process Compare Data
     for usage in usages {
         if let Some(req_metrics) = request_map.get(&usage.pod_name) {
-            
             let mut total_percentage = 0.0;
             let mut count = 0.0;
 
             for (u_point, r_point) in usage.metrics.iter().zip(req_metrics.iter()) {
                 if r_point.value > 0.0 {
-                    let percent = (u_point.value / r_point.value) * 100.0;
-                    total_percentage += percent;
+                    total_percentage += (u_point.value / r_point.value) * 100.0;
                     count += 1.0;
                 }
             }
 
             if count > 0.0 {
-                let avg_usage_percent = total_percentage / count;
-                // Categorize Data
-                let status = if avg_usage_percent >= 90.0 {
-                    "CRITICAL (High)"
-                } else if avg_usage_percent <= 10.0 {
-                    "IDLE (Low)"
-                } else {
-                    "Normal"
-                };
+                let avg = total_percentage / count;
+                
+                let status_raw = if avg >= 90.0 { "Overutilized" } 
+                                 else if avg <= 10.0 { "Underutilized" } 
+                                 else { "Normal" };
 
-                // Print row
-                println!(
-                    "| {:<50} | {:<25} | {:>12.2}% |", 
-                    usage.pod_name, 
-                    status, 
-                    avg_usage_percent
-                );
+                if let Some(user_filter) = filter {
+                    if status_raw.to_uppercase() != user_filter.to_uppercase() {
+                        continue;
+                    }
+                }
+
+                rows_to_print.push((usage.pod_name, status_raw, avg));
             }
         }
     }
-    // Print Footer
-    println!("|{:-<52}|{:-<27}|{:-<15}|", "", "", "");
+
+    // 3. PRINTING
+    let title = format!("Pod Usage Analyzer(all)[{}]", rows_to_print.len());
+    println!("{}", format!("{:-^100}", title).cyan()); 
+
+    println!(
+        "{:<w1$} {:<w2$} {:>w3$}", 
+        "POD NAME".cyan().bold(), 
+        "STATUS".cyan().bold(), 
+        "AVG USAGE".cyan().bold(),
+        w1 = COL_POD, 
+        w2 = COL_STATUS, 
+        w3 = COL_USAGE
+    );
+
+    for (pod_name, status_raw, avg) in rows_to_print {
+        
+        // Apply color to ALL columns based on status
+        let (pod_display, status_display, avg_display) = match status_raw {
+            "Overutilized" => (
+                format!("{:<width$}", pod_name, width = COL_POD).red().bold(),
+                format!("{:<width$}", status_raw, width = COL_STATUS).red().bold(),
+                format!("{:>width$.2}%", avg, width = COL_USAGE - 1).red().bold(),
+            ),
+            "Underutilized" => (
+                format!("{:<width$}", pod_name, width = COL_POD).yellow().bold(),
+                format!("{:<width$}", status_raw, width = COL_STATUS).yellow().bold(),
+                format!("{:>width$.2}%", avg, width = COL_USAGE - 1).yellow().bold(),
+            ),
+            _ => (
+                format!("{:<width$}", pod_name, width = COL_POD).green(),
+                format!("{:<width$}", status_raw, width = COL_STATUS).green(),
+                format!("{:>width$.2}%", avg, width = COL_USAGE - 1).green(),
+            ),
+        };
+
+        println!(
+            "{} {} {}", 
+            pod_display, 
+            status_display, 
+            avg_display
+        );
+    }
 }
