@@ -11,6 +11,7 @@
 - **🔍 Smart Categorization**: Automatically flags pods as `CRITICAL` (High Usage), `IDLE` (Low Usage), or `Normal`.
 - **📈 Backends**: Works with standard Prometheus (At this moment)
 - **📋 Data**: Only memory (At this moment)
+- **🔨 Mode**: It has TUI and CLI Mode.
 
 
 ## 🛠 Installation
@@ -47,6 +48,7 @@ Argument | Description | Default | Example | Required
 --interval | Internal time for analysis in format m,h,d | Null | 15m | True
 --filter | Filter data based on the status | Null | "Normal", "Underutilized", "Overutilized" | false
 --namespace | Filter data by kubernetes namespace | Null | kube-system | false
+--tui | Enter tui mode | false | --tui | false
 
 
 
@@ -74,15 +76,12 @@ max(container_memory_working_set_bytes{name!=""}) by (pod)
 ```
 
 ### 📝 Example Output
-```
--------------------------------------Pod Usage Analyzer(all)[5]-------------------------------------
-POD NAME                                                STATUS                     AVG USAGE
-app-with-limits-b568c767d-sxjcz                         Underutilized                  2.00%
-coredns-66bc5c9577-j77th                                Normal                        62.64%
-coredns-66bc5c9577-stgbt                                Normal                        68.43%
-etcd-master                                             Overutilized                 102.08%
-metrics-server-7d694f9fb5-l9ncl                         Normal                        34.75%
-```
+
+## CLI Mode
+![Alt text for the image](images/cli.png)
+
+## TUI Mode
+![Alt text for the image](images/tui.png)
 
 🤝 Contributing
 Contributions are welcome!
