@@ -33,7 +33,7 @@ cargo build --release
 ```
 
 ### Download the binary
-You can use the binary in bin folder. 
+You can use the binary in the release
 
 ### 🚀 Usage
 Ensure you have a Prometheus instance accessible (use kubectl port-forward if needed).
