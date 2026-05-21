@@ -8,7 +8,7 @@
 
 - **⚡ Fast & Async**: Built with Rust, Tokio, and Clap.
 - **📊 Range Analysis**: Analyzes data over a specific time window (e.g., 7 days) rather than just "now".
-- **🔍 Smart Categorization**: Automatically flags pods as `CRITICAL` (High Usage), `IDLE` (Low Usage), or `Normal`.
+- **🔍 Smart Categorization**: Automatically flags pods as `Overutilized`, `Underutilized` and `Normal`.
 - **📈 Backends**: Works with standard Prometheus (At this moment)
 - **📋 Data**: Only memory (At this moment)
 - **🔨 Mode**: It has TUI and CLI Mode.
