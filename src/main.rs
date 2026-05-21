@@ -60,7 +60,8 @@ async fn main() {
                 request_data_vec.push(MemoryRequest { pod_name, namespace, metrics });
             }
         },
-        _ => eprintln!("Failed to get requests"),
+        Ok(None) => println!("Warning: Prometheus query succeeded, but returned no memory request data."),
+        Err(e) => eprintln!("Failed to get requests. Error details: {:?}", e),
     }
 
     // Fetch memory usage data
@@ -77,7 +78,8 @@ async fn main() {
                 usage_data_vec.push(MemoryUsage { pod_name, namespace, metrics });
             }
         },
-        _ => eprintln!("Failed to get usage"),
+        Ok(None) => println!("Warning: Prometheus query succeeded, but returned no memory usage data."),
+        Err(e) => eprintln!("Failed to get usage. Error details: {:?}", e),
     }
 
     // ... run TUI logic ...
